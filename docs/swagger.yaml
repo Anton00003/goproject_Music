@@ -1,0 +1,354 @@
+definitions:
+  api.deleteReq:
+    properties:
+      group:
+        type: string
+      name:
+        type: string
+    type: object
+  api.updateReq:
+    properties:
+      Values:
+        items:
+          type: string
+        type: array
+      field:
+        type: string
+      group:
+        type: string
+      name:
+        type: string
+      value:
+        type: string
+    type: object
+  datastruct.Music:
+    properties:
+      couplet:
+        items:
+          type: string
+        type: array
+      date:
+        type: string
+      group:
+        type: string
+      link:
+        type: string
+      name:
+        type: string
+      text:
+        type: string
+    type: object
+  datastruct.SongDetail:
+    properties:
+      link:
+        type: string
+      releaseDate:
+        type: string
+      text:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /all_text/:
+    get:
+      consumes:
+      - application/json
+      description: do AllTextMusic
+      parameters:
+      - description: Name
+        in: query
+        name: name
+        type: string
+      - description: Group
+        in: query
+        name: group
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get AllTextMusic
+      tags:
+      - AllTextMusic
+  /couplet/:
+    get:
+      consumes:
+      - application/json
+      description: do CoupletMusic
+      parameters:
+      - description: Name
+        in: query
+        name: name
+        type: string
+      - description: Group
+        in: query
+        name: group
+        type: string
+      - description: Couplet
+        in: query
+        name: nCouplet
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get CoupletMusic
+      tags:
+      - CoupletMusic
+  /info/:
+    get:
+      consumes:
+      - application/json
+      description: do InfoMusic
+      parameters:
+      - description: Name
+        in: query
+        name: name
+        type: string
+      - description: Group
+        in: query
+        name: group
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/datastruct.SongDetail'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get InfoMusic
+      tags:
+      - InfoMusic
+  /music/:
+    delete:
+      consumes:
+      - application/json
+      description: do Delete Music
+      parameters:
+      - description: DeleteMusic
+        in: body
+        name: m
+        required: true
+        schema:
+          $ref: '#/definitions/api.deleteReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/datastruct.Music'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete Music
+      tags:
+      - DeleteMusic
+    get:
+      consumes:
+      - application/json
+      description: do FilterMusic
+      parameters:
+      - description: Name
+        in: query
+        name: name
+        type: string
+      - description: Group
+        in: query
+        name: group
+        type: string
+      - description: Date
+        in: query
+        name: date
+        type: string
+      - description: Text
+        in: query
+        name: text
+        type: string
+      - description: Link
+        in: query
+        name: link
+        type: string
+      - description: nOnPage
+        in: query
+        name: nOnPage
+        type: integer
+      - description: nPage
+        in: query
+        name: nPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/datastruct.Music'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get FilterMusic
+      tags:
+      - FilterMusic
+    patch:
+      consumes:
+      - application/json
+      description: do Update Music
+      parameters:
+      - description: Music
+        in: body
+        name: m
+        required: true
+        schema:
+          $ref: '#/definitions/api.updateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/datastruct.Music'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update Music
+      tags:
+      - UpdateMusic
+    post:
+      consumes:
+      - application/json
+      description: do Music
+      parameters:
+      - description: Music
+        in: body
+        name: m
+        required: true
+        schema:
+          $ref: '#/definitions/datastruct.Music'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/datastruct.Music'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Add Music
+      tags:
+      - Music
+  /text/:
+    get:
+      consumes:
+      - application/json
+      description: do PaginTextMusic
+      parameters:
+      - description: Name
+        in: query
+        name: name
+        type: string
+      - description: Group
+        in: query
+        name: group
+        type: string
+      - description: nOnPage
+        in: query
+        name: nOnPage
+        type: integer
+      - description: nPage
+        in: query
+        name: nPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get PaginTextMusic
+      tags:
+      - PaginTextMusic
+swagger: "2.0"

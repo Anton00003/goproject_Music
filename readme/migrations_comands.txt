@@ -1,0 +1,2 @@
+goose -dir ./migrations postgres "host=localhost port=5431 user=db password=db dbname = db sslmode=disable" up -v
+goose -dir ./migrations postgres "host=localhost port=5431 user=db password=db dbname = db sslmode=disable" down -v
