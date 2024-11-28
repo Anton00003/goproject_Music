@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/all_text/": {
+        "/all_text": {
             "get": {
                 "description": "do AllTextMusic",
                 "consumes": [
@@ -70,7 +70,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/couplet/": {
+        "/couplet": {
             "get": {
                 "description": "do CoupletMusic",
                 "consumes": [
@@ -131,7 +131,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/info/": {
+        "/info": {
             "get": {
                 "description": "do InfoMusic",
                 "consumes": [
@@ -186,7 +186,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/music/": {
+        "/music": {
             "get": {
                 "description": "do FilterMusic",
                 "consumes": [
@@ -406,7 +406,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/text/": {
+        "/text": {
             "get": {
                 "description": "do PaginTextMusic",
                 "consumes": [

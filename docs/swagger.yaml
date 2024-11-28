@@ -50,7 +50,7 @@ definitions:
 info:
   contact: {}
 paths:
-  /all_text/:
+  /all_text:
     get:
       consumes:
       - application/json
@@ -86,7 +86,7 @@ paths:
       summary: Get AllTextMusic
       tags:
       - AllTextMusic
-  /couplet/:
+  /couplet:
     get:
       consumes:
       - application/json
@@ -126,7 +126,7 @@ paths:
       summary: Get CoupletMusic
       tags:
       - CoupletMusic
-  /info/:
+  /info:
     get:
       consumes:
       - application/json
@@ -162,7 +162,7 @@ paths:
       summary: Get InfoMusic
       tags:
       - InfoMusic
-  /music/:
+  /music:
     delete:
       consumes:
       - application/json
@@ -307,7 +307,7 @@ paths:
       summary: Add Music
       tags:
       - Music
-  /text/:
+  /text:
     get:
       consumes:
       - application/json

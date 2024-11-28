@@ -53,14 +53,14 @@ func (a *api) Run(host string) {
 	r := gin.Default()
 	docs.SwaggerInfo.BasePath = ""
 
-	r.GET("/all_text/", a.getAllTextMusicByNameGroup)
-	r.GET("/text/", a.getPaginTextMusicByNameGroup)
-	r.GET("/couplet/", a.getCouplet)
-	r.GET("/info/", a.getInfoMusicByNameGroup)
-	r.GET("/music/", a.getMusicByFilter)
-	r.POST("/music/", a.addMusic)
-	r.PATCH("/music/", a.updateMusicFieldValueByNameGroup)
-	r.DELETE("/music/", a.deleteMusicByNameGroup)
+	r.GET("/all_text", a.getAllTextMusicByNameGroup)
+	r.GET("/text", a.getPaginTextMusicByNameGroup)
+	r.GET("/couplet", a.getCouplet)
+	r.GET("/info", a.getInfoMusicByNameGroup)
+	r.GET("/music", a.getMusicByFilter)
+	r.POST("/music", a.addMusic)
+	r.PATCH("/music", a.updateMusicFieldValueByNameGroup)
+	r.DELETE("/music", a.deleteMusicByNameGroup)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	r.Run(host)
@@ -79,7 +79,7 @@ func (a *api) Run(host string) {
 // @Failure 400 {string} BadRequest
 // @Failure 404 {string} NotFound
 // @Failure 500 {string} ServerError
-// @Router /info/ [get]
+// @Router /info [get]
 func (a *api) getInfoMusicByNameGroup(g *gin.Context) {
 	name := g.Request.URL.Query().Get("name")
 	group := g.Request.URL.Query().Get("group")
@@ -118,7 +118,7 @@ func (a *api) getInfoMusicByNameGroup(g *gin.Context) {
 // @Failure 400 {string} BadRequest
 // @Failure 404 {string} NotFound
 // @Failure 500 {string} ServerError
-// @Router /all_text/ [get]
+// @Router /all_text [get]
 func (a *api) getAllTextMusicByNameGroup(g *gin.Context) {
 	name := g.Request.URL.Query().Get("name")
 	group := g.Request.URL.Query().Get("group")
@@ -158,7 +158,7 @@ func (a *api) getAllTextMusicByNameGroup(g *gin.Context) {
 // @Failure 400 {string} BadRequest
 // @Failure 404 {string} NotFound
 // @Failure 500 {string} ServerError
-// @Router /text/ [get]
+// @Router /text [get]
 func (a *api) getPaginTextMusicByNameGroup(g *gin.Context) {
 	name := g.Request.URL.Query().Get("name")
 	group := g.Request.URL.Query().Get("group")
@@ -227,7 +227,7 @@ func (a *api) getPaginTextMusicByNameGroup(g *gin.Context) {
 // @Failure 400 {string} BadRequest
 // @Failure 404 {string} NotFound
 // @Failure 500 {string} ServerError
-// @Router /music/ [get]
+// @Router /music [get]
 func (a *api) getMusicByFilter(g *gin.Context) {
 	log.Debug("Api: Filter Run")
 	filter := &datastruct.Music{}
@@ -254,6 +254,11 @@ func (a *api) getMusicByFilter(g *gin.Context) {
 	}
 	if filter.MusicName == "" && filter.MusicGroup == "" && filter.MusicDate == "" && filter.MusicText == "" && filter.MusicLink == "" {
 		g.JSON(http.StatusBadRequest, "parameters is required")
+		log.Error("Error Music parameter")
+		return
+	}
+	if nOnPage <= 0 {
+		g.JSON(http.StatusBadRequest, "number records on page can not be <= 0")
 		log.Error("Error Music parameter")
 		return
 	}
@@ -292,7 +297,7 @@ func (a *api) getMusicByFilter(g *gin.Context) {
 // @Failure 400 {string} BadRequest
 // @Failure 404 {string} NotFound
 // @Failure 500 {string} ServerError
-// @Router /couplet/ [get]
+// @Router /couplet [get]
 func (a *api) getCouplet(g *gin.Context) {
 	name := g.Request.URL.Query().Get("name")
 	group := g.Request.URL.Query().Get("group")
@@ -336,7 +341,7 @@ func (a *api) getCouplet(g *gin.Context) {
 // @Success 200 {object} datastruct.Music
 // @Failure 400 {string} BadRequest
 // @Failure 500 {string} ServerError
-// @Router /music/ [post]
+// @Router /music [post]
 func (a *api) addMusic(g *gin.Context) {
 	m := &datastruct.Music{}
 	err := g.ShouldBindJSON(m)
@@ -398,7 +403,7 @@ func (a *api) addMusic(g *gin.Context) {
 // @Success 200 {object} datastruct.Music
 // @Failure 400 {string} BadRequest
 // @Failure 500 {string} ServerError
-// @Router /music/ [patch]
+// @Router /music [patch]
 func (a *api) updateMusicFieldValueByNameGroup(g *gin.Context) {
 	m := updateReq{}
 
@@ -458,7 +463,7 @@ func (a *api) updateMusicFieldValueByNameGroup(g *gin.Context) {
 // @Success 200 {object} datastruct.Music
 // @Failure 400 {string} BadRequest
 // @Failure 500 {string} ServerError
-// @Router /music/ [delete]
+// @Router /music [delete]
 func (a *api) deleteMusicByNameGroup(g *gin.Context) {
 	m := deleteReq{}
 
