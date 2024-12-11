@@ -118,8 +118,6 @@ func (r *repo) GetMusicByFilter(filter *datastruct.Music, nOnPage, nPage int) ([
 	filterN = filterN + 2
 	s = append(s, nOnPage, (nPage-1)*nOnPage)
 	filterText = filterText + fmt.Sprintf(" LIMIT $%s OFFSET $%s", strconv.Itoa(filterN-1), strconv.Itoa(filterN))
-	fmt.Println("filterText=", filterText)
-	fmt.Println("s=", s)
 
 	log.Debug("Repository: input fields have been processed")
 
@@ -215,9 +213,6 @@ func (r *repo) UpdateMusicById(m *datastruct.Music) error {
 	s = append(s, m.Id)
 	updateText = updateText + fmt.Sprintf(" WHERE id = $%v", updateN)
 
-	fmt.Println("updateText=", updateText)
-	fmt.Println("s=", s)
-
 	log.Debug("Repository: input fields have been processed")
 
 	result, err := r.Database.Exec(updateText, s...)
@@ -226,7 +221,6 @@ func (r *repo) UpdateMusicById(m *datastruct.Music) error {
 	}
 
 	affectedRows, _ := result.RowsAffected()
-	fmt.Println("affectedRows = ", affectedRows)
 	if affectedRows < 1 {
 		return datastruct.ErrBadId
 	}
@@ -243,7 +237,6 @@ func (r *repo) DeleteMusicById(id int) error {
 	}
 
 	affectedRows, _ := result.RowsAffected()
-	fmt.Println("affectedRows = ", affectedRows)
 	if affectedRows < 1 {
 		return datastruct.ErrBadId
 	}

@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	//	"fmt"
 	"goproject_Music/datastruct"
 	"net/http"
 	"strconv"
@@ -39,10 +38,8 @@ type serv interface {
 	GetPaginTextMusicById(id, nOnPage int, nPage int) ([]string, error)
 	AddMusic(string, string) (*datastruct.Music, error)
 	GetMusicByFilter(*datastruct.Music, int, int) ([]datastruct.Music, error)
-	//	GetCouplet(id, nCouplet int) (string, error)
 	UpdateMusicById(*datastruct.Music) error
 	DeleteMusicById(id int) error
-	//	GetInfoMusicById(id int) (*datastruct.SongDetail, error)
 	GetGroupId(group string) (int, error)
 	GetList() ([]datastruct.MusicListItem, error)
 	GetSongFromClient(name, group string) (*datastruct.SongDetail, error)
@@ -60,10 +57,8 @@ func (a *api) Run(host string) {
 	r := gin.Default()
 	docs.SwaggerInfo.BasePath = ""
 
-	r.GET("/music/text", a.getAllTextMusicById)           // /text
-	r.GET("/music/text/couplet", a.getPaginTextMusicById) // /text/couplet
-	//	r.GET("/music/couplet", a.getCouplet)           // убрать
-	//	r.GET("/music/info", a.getInfoMusicById)        // убрать
+	r.GET("/music/text", a.getAllTextMusicById)
+	r.GET("/music/text/couplet", a.getPaginTextMusicById)
 	r.GET("/music", a.getMusicByFilter)
 	r.POST("/music", a.addMusic)
 	r.PATCH("/music", a.updateMusicById)
@@ -319,10 +314,7 @@ func (a *api) addMusic(g *gin.Context) {
 		log.Error("Error, group is required")
 		return
 	}
-	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	//	err = a.Serv.AddMusic(m)
 	var m *datastruct.Music
 	m, err = a.Serv.AddMusic(p.Name, p.Group)
 	if err != nil {
@@ -348,7 +340,6 @@ func (a *api) addMusic(g *gin.Context) {
 // @Router /music [patch]
 func (a *api) updateMusicById(g *gin.Context) {
 	u := &updateReq{}
-	//	m := &datastruct.Music{}
 
 	err := g.ShouldBindJSON(u)
 	if err != nil {
