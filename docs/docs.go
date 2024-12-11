@@ -15,177 +15,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/all_text": {
-            "get": {
-                "description": "do AllTextMusic",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "AllTextMusic"
-                ],
-                "summary": "Get AllTextMusic",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Name",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Group",
-                        "name": "group",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/couplet": {
-            "get": {
-                "description": "do CoupletMusic",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "CoupletMusic"
-                ],
-                "summary": "Get CoupletMusic",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Name",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Group",
-                        "name": "group",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Couplet",
-                        "name": "nCouplet",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/info": {
-            "get": {
-                "description": "do InfoMusic",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "InfoMusic"
-                ],
-                "summary": "Get InfoMusic",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Name",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Group",
-                        "name": "group",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/datastruct.SongDetail"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/music": {
             "get": {
                 "description": "do FilterMusic",
@@ -201,13 +30,19 @@ const docTemplate = `{
                 "summary": "Get FilterMusic",
                 "parameters": [
                     {
+                        "type": "integer",
+                        "description": "Id",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
                         "type": "string",
                         "description": "Name",
                         "name": "name",
                         "in": "query"
                     },
                     {
-                        "type": "string",
+                        "type": "integer",
                         "description": "Group",
                         "name": "group",
                         "in": "query"
@@ -288,11 +123,11 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Music",
-                        "name": "m",
+                        "name": "p",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/datastruct.Music"
+                            "$ref": "#/definitions/api.addReq"
                         }
                     }
                 ],
@@ -406,7 +241,88 @@ const docTemplate = `{
                 }
             }
         },
-        "/text": {
+        "/music/list": {
+            "get": {
+                "description": "do List Music",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ListMusic"
+                ],
+                "summary": "ListMusic",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/datastruct.Music"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/music/text": {
+            "get": {
+                "description": "do AllTextMusic",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AllTextMusic"
+                ],
+                "summary": "Get AllTextMusic",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Id",
+                        "name": "id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/music/text/couplet": {
             "get": {
                 "description": "do PaginTextMusic",
                 "consumes": [
@@ -421,15 +337,9 @@ const docTemplate = `{
                 "summary": "Get PaginTextMusic",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Name",
-                        "name": "name",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Group",
-                        "name": "group",
+                        "type": "integer",
+                        "description": "Id",
+                        "name": "id",
                         "in": "query"
                     },
                     {
@@ -475,7 +385,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api.deleteReq": {
+        "api.addReq": {
             "type": "object",
             "properties": {
                 "group": {
@@ -483,46 +393,28 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "api.deleteReq": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
                 }
             }
         },
         "api.updateReq": {
             "type": "object",
             "properties": {
-                "Values": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "field": {
-                    "type": "string"
-                },
-                "group": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "value": {
-                    "type": "string"
-                }
-            }
-        },
-        "datastruct.Music": {
-            "type": "object",
-            "properties": {
-                "couplet": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "date": {
                     "type": "string"
                 },
                 "group": {
-                    "type": "string"
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
                 },
                 "link": {
                     "type": "string"
@@ -535,13 +427,23 @@ const docTemplate = `{
                 }
             }
         },
-        "datastruct.SongDetail": {
+        "datastruct.Music": {
             "type": "object",
             "properties": {
+                "date": {
+                    "description": "перевести в time.Time",
+                    "type": "string"
+                },
+                "group": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
                 "link": {
                     "type": "string"
                 },
-                "releaseDate": {
+                "name": {
                     "type": "string"
                 },
                 "text": {

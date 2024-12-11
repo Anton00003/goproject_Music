@@ -2,6 +2,7 @@ package datastruct
 
 import (
 	"errors"
+	"time"
 )
 
 var (
@@ -9,26 +10,31 @@ var (
 	ErrBadFilter     = errors.New("input bad filter")
 	ErrBadField      = errors.New("input bad field of table")
 	ErrBadTypeVal    = errors.New("input value with bad type")
-	ErrBadNameGroup  = errors.New("input bad Name and Group values")
+	ErrBadId         = errors.New("input bad Id values")
 	ErrBadNumCouplet = errors.New("input bad number of Couplet")
-
-	TableField = map[string]bool{
-		"musicName":        true,
-		"musicGroup":       true,
-		"musicDate":        true,
-		"musicText":        true,
-		"musicLink":        true,
-		"musicTextCouplet": true,
-	}
+	ErrBadGroup      = errors.New("input bad Group values")
+	ErrBadGroupId    = errors.New("input bad Group Id values")
+	ErrBadList       = errors.New("Music list is void")
+	ErrBadMusicGroup = errors.New("input bad Music and Group values")
 )
 
 type Music struct {
-	MusicName        string   `json:"name"`
-	MusicGroup       string   `json:"group"`
-	MusicDate        string   `json:"date"`
-	MusicText        string   `json:"text"`
-	MusicLink        string   `json:"link"`
-	MusicTextCouplet []string `json:"couplet"`
+	Id      int       `json:"id"`
+	Name    string    `json:"name"`
+	GroupId int       `json:"group"`
+	Date    time.Time `json:"date"` // перевести в time.Time
+	Text    string    `json:"text"`
+	Link    string    `json:"link"`
+}
+
+type MusicListItem struct { //    MusicListItem
+	Id      int       `json:"id"`
+	Name    string    `json:"name"`
+	GroupId int       `json:"groupId"`
+	Date    time.Time `json:"date"` // перевести в time.Time
+	Text    string    `json:"text"`
+	Link    string    `json:"link"`
+	Group   string    `json:"group"`
 }
 
 type SongDetail struct {

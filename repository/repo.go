@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"goproject_Music/datastruct"
 	"reflect"
@@ -34,8 +33,8 @@ func NewRepo(dsn string) (*repo, error) {
 	return r, nil
 }
 
-func (r *repo) GetMusicByNameGroup(name, group string) (*datastruct.Music, error) {
-	rows, err := r.Database.Query("SELECT * FROM music WHERE musicName = $1 AND musicGroup = $2", name, group)
+func (r *repo) GetMusicById(id int) (*datastruct.Music, error) {
+	rows, err := r.Database.Query("SELECT id, name, groupId, date, text, link FROM songs WHERE id = $1", id)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Repository: Request error from DB")
 	}
@@ -43,18 +42,11 @@ func (r *repo) GetMusicByNameGroup(name, group string) (*datastruct.Music, error
 	log.Debug("Repository: Request was successful")
 
 	m := &datastruct.Music{}
-	var b []byte
-
 	for rows.Next() {
-		rows.Scan(&(m.MusicName), &(m.MusicGroup), &(m.MusicDate), &(m.MusicText), &(m.MusicLink), &b)
-		err := json.Unmarshal(b, &(m.MusicTextCouplet))
-		if err != nil {
-			log.Debug("Repository: Error unmarshal JSON for couplets: ", err)
-			return nil, errors.WithMessage(err, "Repository: Error unmarshal JSON for couplets")
-		}
+		rows.Scan(&(m.Id), &(m.Name), &(m.GroupId), &(m.Date), &(m.Text), &(m.Link))
 	}
 	if reflect.DeepEqual(m, &datastruct.Music{}) {
-		return nil, datastruct.ErrBadNameGroup
+		return nil, datastruct.ErrBadId
 	}
 
 	log.Debug("Repository: get Music was saccessful")
@@ -64,53 +56,62 @@ func (r *repo) GetMusicByNameGroup(name, group string) (*datastruct.Music, error
 
 func (r *repo) GetMusicByFilter(filter *datastruct.Music, nOnPage, nPage int) ([]datastruct.Music, error) {
 	log.Debug("Filter Run Repository")
-	filterText := "SELECT *  FROM music"
+	filterText := "SELECT id, name, groupId, date, text, link FROM songs"
 	filterN := 0
 	s := []any{}
 
-	if filter.MusicName != "" {
+	if filter.Id != 0 {
 		filterN++
-		s = append(s, filter.MusicName)
+		s = append(s, filter.Id)
 		if filterN == 1 {
-			filterText = filterText + fmt.Sprintf(" WHERE musicName = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" WHERE id = $%v", filterN)
 		} else {
-			filterText = filterText + fmt.Sprintf(" AND musicName = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" AND id = $%v", filterN)
 		}
 	}
-	if filter.MusicGroup != "" {
+	if filter.Name != "" {
 		filterN++
-		s = append(s, filter.MusicGroup)
+		s = append(s, filter.Name)
 		if filterN == 1 {
-			filterText = filterText + fmt.Sprintf(" WHERE musicGroup = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" WHERE name = $%v", filterN)
 		} else {
-			filterText = filterText + fmt.Sprintf(" AND musicGroup = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" AND name = $%v", filterN)
 		}
 	}
-	if filter.MusicDate != "" {
+	if filter.GroupId != 0 {
 		filterN++
-		s = append(s, filter.MusicDate)
+		s = append(s, filter.GroupId)
 		if filterN == 1 {
-			filterText = filterText + fmt.Sprintf(" WHERE musicDate = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" WHERE groupId = $%v", filterN)
 		} else {
-			filterText = filterText + fmt.Sprintf(" AND musicDate = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" AND groupId = $%v", filterN)
 		}
 	}
-	if filter.MusicText != "" {
+	if !filter.Date.IsZero() {
 		filterN++
-		s = append(s, filter.MusicText)
+		s = append(s, filter.Date)
 		if filterN == 1 {
-			filterText = filterText + fmt.Sprintf(" WHERE musicText = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" WHERE date = $%v", filterN)
 		} else {
-			filterText = filterText + fmt.Sprintf(" AND musicText = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" AND date = $%v", filterN)
 		}
 	}
-	if filter.MusicLink != "" {
+	if filter.Text != "" {
 		filterN++
-		s = append(s, filter.MusicLink)
+		s = append(s, filter.Text)
 		if filterN == 1 {
-			filterText = filterText + fmt.Sprintf(" WHERE musicLink = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" WHERE text = $%v", filterN)
 		} else {
-			filterText = filterText + fmt.Sprintf(" AND musicLink = $%s", strconv.Itoa(filterN))
+			filterText = filterText + fmt.Sprintf(" AND text = $%v", filterN)
+		}
+	}
+	if filter.Link != "" {
+		filterN++
+		s = append(s, filter.Link)
+		if filterN == 1 {
+			filterText = filterText + fmt.Sprintf(" WHERE link = $%v", filterN)
+		} else {
+			filterText = filterText + fmt.Sprintf(" AND link = $%v", filterN)
 		}
 	}
 
@@ -122,39 +123,29 @@ func (r *repo) GetMusicByFilter(filter *datastruct.Music, nOnPage, nPage int) ([
 
 	log.Debug("Repository: input fields have been processed")
 
-	musics := []datastruct.Music{}
+	songs := []datastruct.Music{}
 
 	rows, err := r.Database.Query(filterText, s...)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Repository: Request error from DB")
 	}
 
-	var b []byte
 	for rows.Next() {
 		m := datastruct.Music{}
-		rows.Scan(&(m.MusicName), &(m.MusicGroup), &(m.MusicDate), &(m.MusicText), &(m.MusicLink), &b)
-		err := json.Unmarshal(b, &(m.MusicTextCouplet))
-		if err != nil {
-			return nil, errors.WithMessage(err, "Repository: Error unmarshal JSON for couplets")
-		}
-		musics = append(musics, m)
+		rows.Scan(&(m.Id), &(m.Name), &(m.GroupId), &(m.Date), &(m.Text), &(m.Link))
+		songs = append(songs, m)
 	}
 
-	if reflect.DeepEqual(musics, []datastruct.Music{}) {
+	if reflect.DeepEqual(songs, []datastruct.Music{}) {
 		return nil, datastruct.ErrBadFilter
 	}
 
 	log.Debug("Repository: get Music was saccessful")
-	return musics, nil
+	return songs, nil
 }
 
 func (r *repo) AddMusic(m *datastruct.Music) error {
-	b, err := json.Marshal(m.MusicTextCouplet)
-	if err != nil {
-		return errors.WithMessage(err, "Repository: Error marshal JSON for couplets")
-	}
-
-	_, err = r.Database.Query("INSERT INTO music (musicName, musicGroup, musicDate, musicText, musicLink, musicTextCouplet) VALUES ($1, $2, $3, $4, $5, $6)", m.MusicName, m.MusicGroup, m.MusicDate, m.MusicText, m.MusicLink, b)
+	_, err := r.Database.Query("INSERT INTO songs (name, groupId, date, text, link) VALUES ($1, $2, $3, $4, $5)", m.Name, m.GroupId, m.Date, m.Text, m.Link)
 	if err != nil {
 		log.Debug("Repository: Request error from DB when adding record: ", err)
 		return errors.WithMessage(err, "Repository: Request error from DB when adding record")
@@ -163,34 +154,176 @@ func (r *repo) AddMusic(m *datastruct.Music) error {
 	return nil
 }
 
-func (r *repo) UpdateMusicFieldValueByNameGroup(name, group, field, value string) error {
-	_, err := r.Database.Query(fmt.Sprintf("UPDATE music SET %s = $1 WHERE musicName = $2 AND musicGroup = $3", field), value, name, group)
+func (r *repo) UpdateMusicById(m *datastruct.Music) error {
+	log.Debug("Update Run Repository")
+	updateText := "UPDATE songs SET "
+	updateN := 0
+	s := []any{}
+
+	if m.Name != "" {
+		updateN++
+		s = append(s, m.Name)
+		if updateN == 1 {
+			updateText = updateText + fmt.Sprintf("name = $%v", updateN)
+		} else {
+			updateText = updateText + fmt.Sprintf(", name = $%v", updateN)
+		}
+	}
+
+	if m.GroupId != 0 {
+		_, err := r.GetGroupName(m.GroupId)
+		if err != nil {
+			return datastruct.ErrBadGroupId
+		}
+		updateN++
+		s = append(s, m.GroupId)
+		if updateN == 1 {
+			updateText = updateText + fmt.Sprintf("groupId = $%v", updateN)
+		} else {
+			updateText = updateText + fmt.Sprintf(", groupId = $%v", updateN)
+		}
+	}
+	if !m.Date.IsZero() {
+		updateN++
+		s = append(s, m.Date)
+		if updateN == 1 {
+			updateText = updateText + fmt.Sprintf("date = $%v", updateN)
+		} else {
+			updateText = updateText + fmt.Sprintf(", date = $%v", updateN)
+		}
+	}
+	if m.Text != "" {
+		updateN++
+		s = append(s, m.Text)
+		if updateN == 1 {
+			updateText = updateText + fmt.Sprintf("text = $%v", updateN)
+		} else {
+			updateText = updateText + fmt.Sprintf(", text = $%v", updateN)
+		}
+	}
+	if m.Link != "" {
+		updateN++
+		s = append(s, m.Link)
+		if updateN == 1 {
+			updateText = updateText + fmt.Sprintf("link = $%v", updateN)
+		} else {
+			updateText = updateText + fmt.Sprintf(", link = $%v", updateN)
+		}
+	}
+
+	updateN++
+	s = append(s, m.Id)
+	updateText = updateText + fmt.Sprintf(" WHERE id = $%v", updateN)
+
+	fmt.Println("updateText=", updateText)
+	fmt.Println("s=", s)
+
+	log.Debug("Repository: input fields have been processed")
+
+	result, err := r.Database.Exec(updateText, s...)
 	if err != nil {
 		return errors.WithMessage(err, "Repository: Request error from DB when updating record")
 	}
+
+	affectedRows, _ := result.RowsAffected()
+	fmt.Println("affectedRows = ", affectedRows)
+	if affectedRows < 1 {
+		return datastruct.ErrBadId
+	}
+
 	log.Debug("Repository: update Music was saccessful")
 	return nil
 }
 
-func (r *repo) UpdateMusicTextCoupletByNameGroup(name, group, field string, couplets []string) error {
-	b, err := json.Marshal(couplets)
-	if err != nil {
-		return errors.WithMessage(err, "Repository: Error marshal JSON for couplets")
-	}
-	_, err = r.Database.Query(fmt.Sprintf("UPDATE music SET %s = $1 WHERE musicName = $2 AND musicGroup = $3", field), b, name, group)
-	if err != nil {
-		return errors.WithMessage(err, "Repository: Request error from DB when updating record")
-	}
-	log.Debug("Repository: update Music was saccessful")
-	return nil
-}
-
-func (r *repo) DeleteMusicByNameGroup(name, group string) error {
-	_, err := r.Database.Query("DELETE FROM music WHERE musicName = $1 AND musicGroup = $2", name, group)
+func (r *repo) DeleteMusicById(id int) error {
+	result, err := r.Database.Exec("DELETE FROM songs WHERE id = $1", id)
 	if err != nil {
 		log.Debug("Repository: Request error from DB when deleting record: ", err)
 		return errors.WithMessage(err, "Repository: Request error from DB when deleting record")
 	}
+
+	affectedRows, _ := result.RowsAffected()
+	fmt.Println("affectedRows = ", affectedRows)
+	if affectedRows < 1 {
+		return datastruct.ErrBadId
+	}
+
 	log.Debug("Repository: dalete Music was saccessful")
 	return nil
+}
+
+func (r *repo) GetGroupId(group string) (int, error) {
+	rows, err := r.Database.Query("SELECT id FROM groups WHERE name = $1", group)
+	if err != nil {
+		return 0, errors.WithMessage(err, "Repository: Request error from DB")
+	}
+
+	log.Debug("Repository: Request was successful")
+
+	var groupId int
+
+	for rows.Next() {
+		rows.Scan(&groupId)
+	}
+	if groupId == 0 {
+		return 0, datastruct.ErrBadGroup
+	}
+
+	log.Debug("Repository: get GroupId was saccessful")
+
+	return groupId, nil
+}
+
+func (r *repo) AddGroupId(group string) error {
+	_, err := r.Database.Query("INSERT INTO groups (name) VALUES ($1)", group)
+	if err != nil {
+		log.Debug("Repository: Request error from DB when adding record: ", err)
+		return errors.WithMessage(err, "Repository: Request error from DB when adding record")
+	}
+	log.Debug("Repository: add Group was saccessful")
+	return nil
+}
+
+func (r *repo) GetGroupName(id int) (string, error) {
+	rows, err := r.Database.Query("SELECT name FROM groups WHERE id = $1", id)
+	if err != nil {
+		return "", errors.WithMessage(err, "Repository: Request error from DB")
+	}
+
+	log.Debug("Repository: Request was successful")
+
+	var group string
+
+	for rows.Next() {
+		rows.Scan(&group)
+	}
+	if group == "" {
+		return "", datastruct.ErrBadGroupId
+	}
+
+	log.Debug("Repository: get GroupId was saccessful")
+
+	return group, nil
+}
+
+func (r *repo) GetList() ([]datastruct.MusicListItem, error) {
+	songs := []datastruct.MusicListItem{}
+
+	rows, err := r.Database.Query("SELECT songs.id, songs.name, groupId, date, text, link, groups.name FROM songs JOIN groups ON songs.groupId = groups.id")
+	if err != nil {
+		return nil, errors.WithMessage(err, "Repository: Request error from DB")
+	}
+
+	for rows.Next() {
+		m := datastruct.MusicListItem{}
+		rows.Scan(&(m.Id), &(m.Name), &(m.GroupId), &(m.Date), &(m.Text), &(m.Link), &(m.Group))
+		songs = append(songs, m)
+	}
+
+	if len(songs) < 1 {
+		return nil, datastruct.ErrBadList
+	}
+
+	log.Debug("Repository: get Music was saccessful")
+	return songs, nil
 }

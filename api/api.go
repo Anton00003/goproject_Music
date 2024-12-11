@@ -1,12 +1,12 @@
 package api
 
 import (
-	"fmt"
-	"goproject_Music/datastruct"
-
 	"errors"
+	//	"fmt"
+	"goproject_Music/datastruct"
 	"net/http"
 	"strconv"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -18,27 +18,34 @@ import (
 )
 
 type updateReq struct {
-	Name   string   `json:"name"`
-	Group  string   `json:"group"`
-	Field  string   `json:"field"`
-	Value  string   `json:"value"`
-	Values []string `json:"Values"`
+	Id      int    `json:"id"`
+	Name    string `json:"name"`
+	GroupId int    `json:"group"`
+	Date    string `json:"date"`
+	Text    string `json:"text"`
+	Link    string `json:"link"`
 }
 
-type deleteReq struct {
+type addReq struct {
 	Name  string `json:"name"`
 	Group string `json:"group"`
 }
+type deleteReq struct {
+	Id int `json:"id"`
+}
 
 type serv interface {
-	GetAllTextMusicByNameGroup(name, group string) (string, error)
-	GetPaginTextMusicByNameGroup(name string, group string, nOnPage int, nPage int) ([]string, error)
-	AddMusic(*datastruct.Music) error
+	GetAllTextMusicById(id int) (string, error)
+	GetPaginTextMusicById(id, nOnPage int, nPage int) ([]string, error)
+	AddMusic(string, string) (*datastruct.Music, error)
 	GetMusicByFilter(*datastruct.Music, int, int) ([]datastruct.Music, error)
-	GetCouplet(name string, group string, nCouplet int) (string, error)
-	UpdateMusicFieldValueByNameGroup(name, group, field string, value any) error
-	DeleteMusicByNameGroup(name, group string) error
-	GetInfoMusicByNameGroup(name, group string) (*datastruct.SongDetail, error)
+	//	GetCouplet(id, nCouplet int) (string, error)
+	UpdateMusicById(*datastruct.Music) error
+	DeleteMusicById(id int) error
+	//	GetInfoMusicById(id int) (*datastruct.SongDetail, error)
+	GetGroupId(group string) (int, error)
+	GetList() ([]datastruct.MusicListItem, error)
+	GetSongFromClient(name, group string) (*datastruct.SongDetail, error)
 }
 
 type api struct {
@@ -53,56 +60,18 @@ func (a *api) Run(host string) {
 	r := gin.Default()
 	docs.SwaggerInfo.BasePath = ""
 
-	r.GET("/all_text", a.getAllTextMusicByNameGroup)
-	r.GET("/text", a.getPaginTextMusicByNameGroup)
-	r.GET("/couplet", a.getCouplet)
-	r.GET("/info", a.getInfoMusicByNameGroup)
+	r.GET("/music/text", a.getAllTextMusicById)           // /text
+	r.GET("/music/text/couplet", a.getPaginTextMusicById) // /text/couplet
+	//	r.GET("/music/couplet", a.getCouplet)           // убрать
+	//	r.GET("/music/info", a.getInfoMusicById)        // убрать
 	r.GET("/music", a.getMusicByFilter)
 	r.POST("/music", a.addMusic)
-	r.PATCH("/music", a.updateMusicFieldValueByNameGroup)
-	r.DELETE("/music", a.deleteMusicByNameGroup)
+	r.PATCH("/music", a.updateMusicById)
+	r.DELETE("/music", a.deleteMusicById)
+	r.GET("/music/list", a.getList)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	r.Run(host)
-}
-
-// InfoMusic godoc
-// @Summary Get InfoMusic
-// @Schemes
-// @Description do InfoMusic
-// @Tags InfoMusic
-// @Accept json
-// @Produce json
-// @Param        name   query      string  false  "Name"
-// @Param        group  query      string  false  "Group"
-// @Success 200 {object} datastruct.SongDetail
-// @Failure 400 {string} BadRequest
-// @Failure 404 {string} NotFound
-// @Failure 500 {string} ServerError
-// @Router /info [get]
-func (a *api) getInfoMusicByNameGroup(g *gin.Context) {
-	name := g.Request.URL.Query().Get("name")
-	group := g.Request.URL.Query().Get("group")
-	fmt.Println("name=", name)
-	fmt.Println("group=", group)
-	if name == "" || group == "" {
-		g.JSON(http.StatusBadRequest, "parameters is required")
-		log.Error("Error Music parameter")
-		return
-	}
-	SongDetail, err := a.Serv.GetInfoMusicByNameGroup(name, group)
-	if err != nil {
-		if errors.Is(err, datastruct.ErrBadNameGroup) {
-			g.JSON(http.StatusNotFound, err.Error())
-			log.Error("Server Error: ", err.Error())
-			return
-		}
-		g.JSON(http.StatusInternalServerError, err.Error())
-		log.Error("Server Error: ", err.Error())
-		return
-	}
-
-	g.JSON(http.StatusOK, *SongDetail)
 }
 
 // AllTextMusic godoc
@@ -112,25 +81,29 @@ func (a *api) getInfoMusicByNameGroup(g *gin.Context) {
 // @Tags AllTextMusic
 // @Accept json
 // @Produce json
-// @Param        name   query      string  false  "Name"
-// @Param        group   query      string  false  "Group"
+// @Param        id   query      int  false  "Id"
 // @Success 200 {string} TextSong
 // @Failure 400 {string} BadRequest
 // @Failure 404 {string} NotFound
 // @Failure 500 {string} ServerError
-// @Router /all_text [get]
-func (a *api) getAllTextMusicByNameGroup(g *gin.Context) {
-	name := g.Request.URL.Query().Get("name")
-	group := g.Request.URL.Query().Get("group")
+// @Router /music/text [get]
+func (a *api) getAllTextMusicById(g *gin.Context) {
+	idS := g.Request.URL.Query().Get("id")
+	id, err := strconv.Atoi(idS)
+	if err != nil {
+		g.JSON(http.StatusBadRequest, "number id is not numerical")
+		log.Error("Error number id parameter")
+		return
+	}
 
-	if name == "" || group == "" {
+	if id <= 0 {
 		g.JSON(http.StatusBadRequest, "parameters is required")
 		log.Error("Error Music parameter")
 		return
 	}
-	TextSong, err := a.Serv.GetAllTextMusicByNameGroup(name, group)
+	TextSong, err := a.Serv.GetAllTextMusicById(id)
 	if err != nil {
-		if errors.Is(err, datastruct.ErrBadNameGroup) {
+		if errors.Is(err, datastruct.ErrBadId) { // ErrBadNameGroup заменить на ErrBadId
 			g.JSON(http.StatusNotFound, err.Error())
 			log.Error("Server Error: ", err.Error())
 			return
@@ -150,21 +123,25 @@ func (a *api) getAllTextMusicByNameGroup(g *gin.Context) {
 // @Tags PaginTextMusic
 // @Accept json
 // @Produce json
-// @Param        name     query      string  false  "Name"
-// @Param        group    query      string  false  "Group"
+// @Param          id     query      int     false  "Id"
 // @Param        nOnPage  query      int     false  "nOnPage"
 // @Param        nPage    query      int     false  "nPage"
 // @Success 200 {string} TextSong
 // @Failure 400 {string} BadRequest
 // @Failure 404 {string} NotFound
 // @Failure 500 {string} ServerError
-// @Router /text [get]
-func (a *api) getPaginTextMusicByNameGroup(g *gin.Context) {
-	name := g.Request.URL.Query().Get("name")
-	group := g.Request.URL.Query().Get("group")
+// @Router /music/text/couplet [get]
+func (a *api) getPaginTextMusicById(g *gin.Context) {
+	idS := g.Request.URL.Query().Get("id")
 	nOnPageS := g.Request.URL.Query().Get("nOnPage")
 	nPageS := g.Request.URL.Query().Get("nPage")
 
+	id, err := strconv.Atoi(idS)
+	if err != nil {
+		g.JSON(http.StatusBadRequest, "number id is not numerical")
+		log.Error("Error number id parameter")
+		return
+	}
 	nOnPage, err := strconv.Atoi(nOnPageS)
 	if err != nil {
 		g.JSON(http.StatusBadRequest, "number records on page is not numerical")
@@ -178,7 +155,7 @@ func (a *api) getPaginTextMusicByNameGroup(g *gin.Context) {
 		return
 	}
 
-	if name == "" || group == "" {
+	if id <= 0 {
 		g.JSON(http.StatusBadRequest, "parameters is required")
 		log.Error("Error Music parameter")
 		return
@@ -194,9 +171,9 @@ func (a *api) getPaginTextMusicByNameGroup(g *gin.Context) {
 		return
 	}
 
-	coupOnPage, err := a.Serv.GetPaginTextMusicByNameGroup(name, group, nOnPage, nPage)
+	coupOnPage, err := a.Serv.GetPaginTextMusicById(id, nOnPage, nPage)
 	if err != nil {
-		if errors.Is(err, datastruct.ErrBadNumPage) {
+		if errors.Is(err, datastruct.ErrBadNumPage) || errors.Is(err, datastruct.ErrBadId) {
 			g.JSON(http.StatusNotFound, err.Error())
 			log.Error("Server Error: ", err.Error())
 			return
@@ -216,8 +193,9 @@ func (a *api) getPaginTextMusicByNameGroup(g *gin.Context) {
 // @Tags FilterMusic
 // @Accept json
 // @Produce json
+// @Param        id       query      int     false  "Id"
 // @Param        name     query      string  false  "Name"
-// @Param        group    query      string  false  "Group"
+// @Param        group    query      int     false  "Group"
 // @Param        date     query      string  false  "Date"
 // @Param        text     query      string  false  "Text"
 // @Param        link     query      string  false  "Link"
@@ -229,17 +207,43 @@ func (a *api) getPaginTextMusicByNameGroup(g *gin.Context) {
 // @Failure 500 {string} ServerError
 // @Router /music [get]
 func (a *api) getMusicByFilter(g *gin.Context) {
+	var err error
 	log.Debug("Api: Filter Run")
 	filter := &datastruct.Music{}
 
-	filter.MusicName = g.Request.URL.Query().Get("name")
-	filter.MusicGroup = g.Request.URL.Query().Get("group")
-	filter.MusicDate = g.Request.URL.Query().Get("date")
-	filter.MusicText = g.Request.URL.Query().Get("text")
-	filter.MusicLink = g.Request.URL.Query().Get("link")
+	musicId := g.Request.URL.Query().Get("id")
+	filter.Name = g.Request.URL.Query().Get("name")
+	groupId := g.Request.URL.Query().Get("group")
+	date := g.Request.URL.Query().Get("date")
+	filter.Text = g.Request.URL.Query().Get("text")
+	filter.Link = g.Request.URL.Query().Get("link")
 	nOnPageS := g.Request.URL.Query().Get("nOnPage")
 	nPageS := g.Request.URL.Query().Get("nPage")
 
+	if musicId != "" {
+		filter.Id, err = strconv.Atoi(musicId)
+		if err != nil {
+			g.JSON(http.StatusBadRequest, "number musicId is not numerical")
+			log.Error("Error number musicId parameter")
+			return
+		}
+	}
+	if groupId != "" {
+		filter.GroupId, err = strconv.Atoi(groupId)
+		if err != nil {
+			g.JSON(http.StatusBadRequest, "number groupId is not numerical")
+			log.Error("Error number groupId parameter")
+			return
+		}
+	}
+	if date != "" {
+		filter.Date, err = time.Parse("02.01.2006", date)
+		if err != nil {
+			g.JSON(http.StatusBadRequest, "input bad date")
+			log.Error("Error, input bad date")
+			return
+		}
+	}
 	nOnPage, err := strconv.Atoi(nOnPageS)
 	if err != nil {
 		g.JSON(http.StatusBadRequest, "number records on page is not numerical")
@@ -252,7 +256,7 @@ func (a *api) getMusicByFilter(g *gin.Context) {
 		log.Error("Error number of page parameter")
 		return
 	}
-	if filter.MusicName == "" && filter.MusicGroup == "" && filter.MusicDate == "" && filter.MusicText == "" && filter.MusicLink == "" {
+	if filter.Id <= 0 && filter.Name == "" && filter.GroupId <= 0 && filter.Date.IsZero() && filter.Text == "" && filter.Link == "" {
 		g.JSON(http.StatusBadRequest, "parameters is required")
 		log.Error("Error Music parameter")
 		return
@@ -268,7 +272,7 @@ func (a *api) getMusicByFilter(g *gin.Context) {
 		return
 	}
 
-	musics, err := a.Serv.GetMusicByFilter(filter, nOnPage, nPage)
+	songs, err := a.Serv.GetMusicByFilter(filter, nOnPage, nPage)
 	if err != nil {
 		if errors.Is(err, datastruct.ErrBadFilter) {
 			g.JSON(http.StatusNotFound, err.Error())
@@ -280,54 +284,7 @@ func (a *api) getMusicByFilter(g *gin.Context) {
 		return
 	}
 
-	g.JSON(http.StatusOK, musics)
-}
-
-// CoupletMusic godoc
-// @Summary Get CoupletMusic
-// @Schemes
-// @Description do CoupletMusic
-// @Tags CoupletMusic
-// @Accept json
-// @Produce json
-// @Param        name          query      string  false  "Name"
-// @Param        group         query      string  false  "Group"
-// @Param        nCouplet      query      string  false  "Couplet"
-// @Success 200 {string} TextCouplet
-// @Failure 400 {string} BadRequest
-// @Failure 404 {string} NotFound
-// @Failure 500 {string} ServerError
-// @Router /couplet [get]
-func (a *api) getCouplet(g *gin.Context) {
-	name := g.Request.URL.Query().Get("name")
-	group := g.Request.URL.Query().Get("group")
-	nCoupletStr := g.Request.URL.Query().Get("nCouplet")
-	if name == "" || group == "" || nCoupletStr == "" {
-		g.JSON(http.StatusBadRequest, "Not enough entered parameters")
-		log.Error("Not enough entered parameters")
-		return
-	}
-
-	nCouplet, err := strconv.Atoi(nCoupletStr)
-	if err != nil {
-		g.JSON(http.StatusBadRequest, "nCouplet is not numerical")
-		log.Error("nCouplet is not numerical: ", err.Error())
-		return
-	}
-
-	textCouplet, err := a.Serv.GetCouplet(name, group, nCouplet)
-	if err != nil {
-		if errors.Is(err, datastruct.ErrBadNameGroup) || errors.Is(err, datastruct.ErrBadNumCouplet) {
-			g.JSON(http.StatusNotFound, err.Error())
-			log.Error("Server Error: ", err.Error())
-			return
-		}
-		g.JSON(http.StatusInternalServerError, err.Error())
-		log.Error("Server Error: ", err.Error())
-		return
-	}
-
-	g.JSON(http.StatusOK, textCouplet)
+	g.JSON(http.StatusOK, songs)
 }
 
 // AddMusic godoc
@@ -337,52 +294,37 @@ func (a *api) getCouplet(g *gin.Context) {
 // @Tags Music
 // @Accept json
 // @Produce json
-// @Param        m   body      datastruct.Music  true  "Music"
+// @Param        p   body      addReq  true  "Music"
 // @Success 200 {object} datastruct.Music
 // @Failure 400 {string} BadRequest
 // @Failure 500 {string} ServerError
 // @Router /music [post]
 func (a *api) addMusic(g *gin.Context) {
-	m := &datastruct.Music{}
-	err := g.ShouldBindJSON(m)
+	//	m := &datastruct.Music{}
+	p := addReq{}
+	err := g.ShouldBindJSON(&p)
 	if err != nil {
 		g.JSON(http.StatusBadRequest, "Error with read body")
 		log.Error("Error with read body: ", err.Error())
 		return
 	}
 
-	if m.MusicName == "" {
+	if p.Name == "" {
 		g.JSON(http.StatusBadRequest, "name is required")
 		log.Error("Error, name is required")
 		return
 	}
-	if m.MusicGroup == "" {
+	if p.Group == "" {
 		g.JSON(http.StatusBadRequest, "group is required")
 		log.Error("Error, group is required")
 		return
 	}
-	if m.MusicDate == "" {
-		g.JSON(http.StatusBadRequest, "date is required")
-		log.Error("Error, date is required")
-		return
-	}
-	if m.MusicText == "" {
-		g.JSON(http.StatusBadRequest, "text is required")
-		log.Error("Error, text is required")
-		return
-	}
-	if m.MusicLink == "" {
-		g.JSON(http.StatusBadRequest, "link is required")
-		log.Error("Error, link is required")
-		return
-	}
-	if len(m.MusicTextCouplet) == 0 {
-		g.JSON(http.StatusBadRequest, "couplet is required")
-		log.Error("Error, couplet is required")
-		return
-	}
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	err = a.Serv.AddMusic(m)
+	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//	err = a.Serv.AddMusic(m)
+	var m *datastruct.Music
+	m, err = a.Serv.AddMusic(p.Name, p.Group)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, err.Error())
 		log.Error("Error, Serv.AddMusic: ", err.Error())
@@ -404,44 +346,50 @@ func (a *api) addMusic(g *gin.Context) {
 // @Failure 400 {string} BadRequest
 // @Failure 500 {string} ServerError
 // @Router /music [patch]
-func (a *api) updateMusicFieldValueByNameGroup(g *gin.Context) {
-	m := updateReq{}
+func (a *api) updateMusicById(g *gin.Context) {
+	u := &updateReq{}
+	//	m := &datastruct.Music{}
 
-	err := g.ShouldBindJSON(&m)
+	err := g.ShouldBindJSON(u)
 	if err != nil {
 		g.JSON(http.StatusBadRequest, "Error with read body")
 		log.Error("Error with read body", err.Error())
 		return
 	}
-	if m.Name == "" {
-		g.JSON(http.StatusBadRequest, "Name is required")
-		log.Error("Error, Name is required")
+	if u.Id <= 0 {
+		g.JSON(http.StatusBadRequest, "Id is required")
+		log.Error("Error, Id is required")
 		return
 	}
-	if m.Group == "" {
-		g.JSON(http.StatusBadRequest, "Group is required")
-		log.Error("Error, Group is required")
+	if u.Name == "" && u.GroupId <= 0 && u.Date == "" && u.Text == "" && u.Link == "" {
+		g.JSON(http.StatusBadRequest, "parameters is required")
+		log.Error("Error Music parameter")
 		return
 	}
-	if m.Field == "" {
-		g.JSON(http.StatusBadRequest, "Field is required")
-		log.Error("Error, Field is required")
-		return
+	var date time.Time
+	if u.Date != "" {
+		date, err = time.Parse("02.01.2006", u.Date)
+		if err != nil {
+			g.JSON(http.StatusBadRequest, "impt bad date")
+			log.Error("Error, impt bad date")
+			return
+		}
 	}
-	if m.Value == "" && len(m.Values) == 0 {
-		g.JSON(http.StatusBadRequest, "Value/Values is required")
-		log.Error("Error, Value is required")
-		return
+
+	m := &datastruct.Music{
+		Id:      u.Id,
+		Name:    u.Name,
+		GroupId: u.GroupId,
+		Date:    date,
+		Text:    u.Text,
+		Link:    u.Link,
 	}
-	if m.Value != "" {
-		err = a.Serv.UpdateMusicFieldValueByNameGroup(m.Name, m.Group, m.Field, m.Value)
-	} else {
-		err = a.Serv.UpdateMusicFieldValueByNameGroup(m.Name, m.Group, m.Field, m.Values)
-	}
+
+	err = a.Serv.UpdateMusicById(m)
 	if err != nil {
-		if errors.Is(err, datastruct.ErrBadField) {
-			g.JSON(http.StatusBadRequest, err.Error())
-			log.Error("Error: ", err.Error())
+		if errors.Is(err, datastruct.ErrBadId) {
+			g.JSON(http.StatusNotFound, err.Error())
+			log.Error("Server Error: ", err.Error())
 			return
 		}
 		g.JSON(http.StatusInternalServerError, err.Error())
@@ -464,7 +412,7 @@ func (a *api) updateMusicFieldValueByNameGroup(g *gin.Context) {
 // @Failure 400 {string} BadRequest
 // @Failure 500 {string} ServerError
 // @Router /music [delete]
-func (a *api) deleteMusicByNameGroup(g *gin.Context) {
+func (a *api) deleteMusicById(g *gin.Context) {
 	m := deleteReq{}
 
 	err := g.ShouldBindJSON(&m)
@@ -473,23 +421,45 @@ func (a *api) deleteMusicByNameGroup(g *gin.Context) {
 		log.Error("Error with read body", err.Error())
 		return
 	}
-	if m.Name == "" {
-		g.JSON(http.StatusBadRequest, "Name is required")
-		log.Error("Error, Name is required")
-		return
-	}
-	if m.Group == "" {
-		g.JSON(http.StatusBadRequest, "Group is required")
-		log.Error("Error, Group is required")
+	if m.Id <= 0 {
+		g.JSON(http.StatusBadRequest, "Id is required")
+		log.Error("Error, Id is required")
 		return
 	}
 
-	err = a.Serv.DeleteMusicByNameGroup(m.Name, m.Group)
+	err = a.Serv.DeleteMusicById(m.Id)
 	if err != nil {
+		if errors.Is(err, datastruct.ErrBadId) {
+			g.JSON(http.StatusNotFound, err.Error())
+			log.Error("Server Error: ", err.Error())
+			return
+		}
 		g.JSON(http.StatusInternalServerError, err.Error())
 		log.Error("Error DeleteMusic", err.Error())
 		return
 	}
 
 	g.JSON(http.StatusOK, m)
+}
+
+// ListMusic godoc
+// @Summary ListMusic
+// @Schemes
+// @Description do List Music
+// @Tags ListMusic
+// @Accept json
+// @Produce json
+// @Success 200 {array} datastruct.Music
+// @Failure 500 {string} ServerError
+// @Router /music/list [get]
+func (a *api) getList(g *gin.Context) {
+	songs, err := a.Serv.GetList()
+	if err != nil {
+		g.JSON(http.StatusInternalServerError, err.Error())
+		log.Error("Server Error: ", err.Error())
+		return
+	}
+
+	g.JSON(http.StatusOK, songs)
+	return
 }

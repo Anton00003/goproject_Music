@@ -1,36 +1,24 @@
 definitions:
-  api.deleteReq:
+  api.addReq:
     properties:
       group:
         type: string
       name:
         type: string
+    type: object
+  api.deleteReq:
+    properties:
+      id:
+        type: integer
     type: object
   api.updateReq:
     properties:
-      Values:
-        items:
-          type: string
-        type: array
-      field:
-        type: string
-      group:
-        type: string
-      name:
-        type: string
-      value:
-        type: string
-    type: object
-  datastruct.Music:
-    properties:
-      couplet:
-        items:
-          type: string
-        type: array
       date:
         type: string
       group:
-        type: string
+        type: integer
+      id:
+        type: integer
       link:
         type: string
       name:
@@ -38,11 +26,18 @@ definitions:
       text:
         type: string
     type: object
-  datastruct.SongDetail:
+  datastruct.Music:
     properties:
+      date:
+        description: перевести в time.Time
+        type: string
+      group:
+        type: integer
+      id:
+        type: integer
       link:
         type: string
-      releaseDate:
+      name:
         type: string
       text:
         type: string
@@ -50,118 +45,6 @@ definitions:
 info:
   contact: {}
 paths:
-  /all_text:
-    get:
-      consumes:
-      - application/json
-      description: do AllTextMusic
-      parameters:
-      - description: Name
-        in: query
-        name: name
-        type: string
-      - description: Group
-        in: query
-        name: group
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get AllTextMusic
-      tags:
-      - AllTextMusic
-  /couplet:
-    get:
-      consumes:
-      - application/json
-      description: do CoupletMusic
-      parameters:
-      - description: Name
-        in: query
-        name: name
-        type: string
-      - description: Group
-        in: query
-        name: group
-        type: string
-      - description: Couplet
-        in: query
-        name: nCouplet
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get CoupletMusic
-      tags:
-      - CoupletMusic
-  /info:
-    get:
-      consumes:
-      - application/json
-      description: do InfoMusic
-      parameters:
-      - description: Name
-        in: query
-        name: name
-        type: string
-      - description: Group
-        in: query
-        name: group
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/datastruct.SongDetail'
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: Get InfoMusic
-      tags:
-      - InfoMusic
   /music:
     delete:
       consumes:
@@ -197,6 +80,10 @@ paths:
       - application/json
       description: do FilterMusic
       parameters:
+      - description: Id
+        in: query
+        name: id
+        type: integer
       - description: Name
         in: query
         name: name
@@ -204,7 +91,7 @@ paths:
       - description: Group
         in: query
         name: group
-        type: string
+        type: integer
       - description: Date
         in: query
         name: date
@@ -285,10 +172,10 @@ paths:
       parameters:
       - description: Music
         in: body
-        name: m
+        name: p
         required: true
         schema:
-          $ref: '#/definitions/datastruct.Music'
+          $ref: '#/definitions/api.addReq'
       produces:
       - application/json
       responses:
@@ -307,20 +194,69 @@ paths:
       summary: Add Music
       tags:
       - Music
-  /text:
+  /music/list:
+    get:
+      consumes:
+      - application/json
+      description: do List Music
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/datastruct.Music'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: ListMusic
+      tags:
+      - ListMusic
+  /music/text:
+    get:
+      consumes:
+      - application/json
+      description: do AllTextMusic
+      parameters:
+      - description: Id
+        in: query
+        name: id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get AllTextMusic
+      tags:
+      - AllTextMusic
+  /music/text/couplet:
     get:
       consumes:
       - application/json
       description: do PaginTextMusic
       parameters:
-      - description: Name
+      - description: Id
         in: query
-        name: name
-        type: string
-      - description: Group
-        in: query
-        name: group
-        type: string
+        name: id
+        type: integer
       - description: nOnPage
         in: query
         name: nOnPage

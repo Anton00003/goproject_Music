@@ -8,9 +8,11 @@ import (
 )
 
 type Config struct {
-	DSN  string
-	Host string
-	Level        string
+	DSN              string
+	Host             string
+	Level            string
+	MusicSrorageHost string
+	Path             string
 }
 
 func New() (*Config, error) {
@@ -22,9 +24,11 @@ func New() (*Config, error) {
 	}
 
 	return &Config{
-		DSN:          getEnv("DSN"),
-		Host:         getEnv("HOST"),
-		Level:        getEnv("LEVEL"),
+		DSN:              getEnv("DSN"),
+		Host:             getEnv("HOST"),
+		Level:            getEnv("LEVEL"),
+		MusicSrorageHost: getEnv("MUSIC_STORAGE_HOST"),
+		Path:             getEnv("PATH"),
 	}, nil
 }
 
