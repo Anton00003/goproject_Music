@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"goproject_Music/datastruct"
 	"strings"
 	"time"
@@ -9,14 +10,14 @@ import (
 )
 
 type repo interface {
-	GetMusicById(id int) (*datastruct.Music, error)
-	AddMusic(m *datastruct.Music) error
-	GetMusicByFilter(*datastruct.Music, int, int) ([]datastruct.Music, error)
-	UpdateMusicById(*datastruct.Music) error
-	DeleteMusicById(id int) error
-	GetGroupId(group string) (int, error)
-	AddGroupId(group string) error
-	GetList() ([]datastruct.MusicListItem, error)
+	GetMusicById(ctx context.Context, id int) (*datastruct.Music, error)
+	AddMusic(ctx context.Context, m *datastruct.Music) error
+	GetMusicByFilter(ctx context.Context, filter *datastruct.Music, nOnPage int, nPage int) ([]datastruct.Music, error)
+	UpdateMusicById(ctx context.Context, m *datastruct.Music) error
+	DeleteMusicById(ctx context.Context, id int) error
+	GetGroupId(ctx context.Context, group string) (int, error)
+	AddGroupId(ctx context.Context, group string) error
+	GetList(ctx context.Context) ([]datastruct.MusicListItem, error)
 }
 
 type client interface {
@@ -32,16 +33,16 @@ func NewServ(r repo, c client) *serv {
 	return &serv{Repo: r, Client: c}
 }
 
-func (s *serv) GetAllTextMusicById(id int) (string, error) {
-	m, err := s.Repo.GetMusicById(id)
+func (s *serv) GetAllTextMusicById(ctx context.Context, id int) (string, error) {
+	m, err := s.Repo.GetMusicById(ctx, id)
 	if err != nil {
 		return "", err
 	}
 	return m.Text, nil
 }
 
-func (s *serv) GetPaginTextMusicById(id, nOnPage, nPage int) ([]string, error) {
-	m, err := s.Repo.GetMusicById(id)
+func (s *serv) GetPaginTextMusicById(ctx context.Context, id, nOnPage, nPage int) ([]string, error) {
+	m, err := s.Repo.GetMusicById(ctx, id)
 	if err != nil {
 		return []string{}, err
 	}
@@ -61,14 +62,14 @@ func (s *serv) GetPaginTextMusicById(id, nOnPage, nPage int) ([]string, error) {
 	return coupOnPage, nil
 }
 
-func (s *serv) AddMusic(song, group string) (*datastruct.Music, error) {
+func (s *serv) AddMusic(ctx context.Context, song, group string) (*datastruct.Music, error) {
 	detail, err := s.GetSongFromClient(song, group)
 	if err != nil {
 		return nil, err
 	}
 
 	var groupId int
-	groupId, err = s.GetGroupId(group)
+	groupId, err = s.GetGroupId(ctx, group)
 	if err != nil {
 		return nil, err
 	}
@@ -86,23 +87,23 @@ func (s *serv) AddMusic(song, group string) (*datastruct.Music, error) {
 		Link:    detail.Link,
 	}
 
-	return m, s.Repo.AddMusic(m)
+	return m, s.Repo.AddMusic(ctx, m)
 }
 
-func (s *serv) GetMusicByFilter(filter *datastruct.Music, nOnPage, nPage int) ([]datastruct.Music, error) {
-	return s.Repo.GetMusicByFilter(filter, nOnPage, nPage)
+func (s *serv) GetMusicByFilter(ctx context.Context, filter *datastruct.Music, nOnPage, nPage int) ([]datastruct.Music, error) {
+	return s.Repo.GetMusicByFilter(ctx, filter, nOnPage, nPage)
 }
 
-func (s *serv) UpdateMusicById(m *datastruct.Music) error {
-	return s.Repo.UpdateMusicById(m)
+func (s *serv) UpdateMusicById(ctx context.Context, m *datastruct.Music) error {
+	return s.Repo.UpdateMusicById(ctx, m)
 }
 
-func (s *serv) DeleteMusicById(id int) error {
-	return s.Repo.DeleteMusicById(id)
+func (s *serv) DeleteMusicById(ctx context.Context, id int) error {
+	return s.Repo.DeleteMusicById(ctx, id)
 }
 
-func (s *serv) GetGroupId(group string) (int, error) {
-	id, err := s.Repo.GetGroupId(group)
+func (s *serv) GetGroupId(ctx context.Context, group string) (int, error) {
+	id, err := s.Repo.GetGroupId(ctx, group)
 	if err != nil && !errors.Is(err, datastruct.ErrBadGroup) {
 		return 0, err
 	}
@@ -110,12 +111,12 @@ func (s *serv) GetGroupId(group string) (int, error) {
 		return id, nil
 	}
 
-	err = s.Repo.AddGroupId(group)
+	err = s.Repo.AddGroupId(ctx, group)
 	if err != nil {
 		return 0, err
 	}
 
-	id, err = s.Repo.GetGroupId(group)
+	id, err = s.Repo.GetGroupId(ctx, group)
 	if err != nil {
 		return 0, err
 	}
@@ -123,8 +124,8 @@ func (s *serv) GetGroupId(group string) (int, error) {
 	return id, nil
 }
 
-func (s *serv) GetList() ([]datastruct.MusicListItem, error) {
-	return s.Repo.GetList()
+func (s *serv) GetList(ctx context.Context) ([]datastruct.MusicListItem, error) {
+	return s.Repo.GetList(ctx)
 }
 
 func (s *serv) GetSongFromClient(name, group string) (*datastruct.SongDetail, error) {

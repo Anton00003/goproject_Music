@@ -1,10 +1,12 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"goproject_Music/datastruct"
-	"reflect"
+
+	//	"reflect"
 	"strconv"
 
 	_ "github.com/lib/pq"
@@ -29,32 +31,36 @@ func NewRepo(dsn string) (*repo, error) {
 	if err := r.Database.Ping(); err != nil {
 		return nil, errors.WithMessage(err, "Repository: pinging DB")
 	}
-	log.Debug("Repository: ping was saccessful, New Repository created")
+	log.Debug("Repository: ping was successful, New Repository created")
 	return r, nil
 }
 
-func (r *repo) GetMusicById(id int) (*datastruct.Music, error) {
-	rows, err := r.Database.Query("SELECT id, name, groupId, date, text, link FROM songs WHERE id = $1", id)
-	if err != nil {
-		return nil, errors.WithMessage(err, "Repository: Request error from DB")
-	}
+func (r *repo) GetMusicById(ctx context.Context, id int) (*datastruct.Music, error) {
+	row := r.Database.QueryRowContext(ctx, "SELECT id, name, groupId, date, text, link FROM songs WHERE id = $1", id) //       добавить контекст
+	//	rows, err := r.Database.QueryContext(ctx, "SELECT id, name, groupId, date, text, link FROM songs WHERE id = $1", id)
+	//	if err != nil {
+	//		return nil, errors.WithMessage(err, "Repository: Request error from DB")
+	//	}
 
 	log.Debug("Repository: Request was successful")
 
 	m := &datastruct.Music{}
-	for rows.Next() {
-		rows.Scan(&(m.Id), &(m.Name), &(m.GroupId), &(m.Date), &(m.Text), &(m.Link))
+	//	for rows.Next() { // попробовать убрать, все равно будет одна строка
+	err := row.Scan(&(m.Id), &(m.Name), &(m.GroupId), &(m.Date), &(m.Text), &(m.Link))
+	if err != nil {
+		return nil, err
 	}
-	if reflect.DeepEqual(m, &datastruct.Music{}) {
-		return nil, datastruct.ErrBadId
-	}
+	//	}
+	//	if reflect.DeepEqual(m, &datastruct.Music{}) {
+	//		return nil, datastruct.ErrBadId
+	//	}
 
-	log.Debug("Repository: get Music was saccessful")
+	log.Debug("Repository: get Music was successful")
 
 	return m, nil
 }
 
-func (r *repo) GetMusicByFilter(filter *datastruct.Music, nOnPage, nPage int) ([]datastruct.Music, error) {
+func (r *repo) GetMusicByFilter(ctx context.Context, filter *datastruct.Music, nOnPage, nPage int) ([]datastruct.Music, error) {
 	log.Debug("Filter Run Repository")
 	filterText := "SELECT id, name, groupId, date, text, link FROM songs"
 	filterN := 0
@@ -118,12 +124,14 @@ func (r *repo) GetMusicByFilter(filter *datastruct.Music, nOnPage, nPage int) ([
 	filterN = filterN + 2
 	s = append(s, nOnPage, (nPage-1)*nOnPage)
 	filterText = filterText + fmt.Sprintf(" LIMIT $%s OFFSET $%s", strconv.Itoa(filterN-1), strconv.Itoa(filterN))
+	fmt.Println("filterText=", filterText)
+	fmt.Println("s=", s)
 
 	log.Debug("Repository: input fields have been processed")
 
 	songs := []datastruct.Music{}
 
-	rows, err := r.Database.Query(filterText, s...)
+	rows, err := r.Database.QueryContext(ctx, filterText, s...)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Repository: Request error from DB")
 	}
@@ -134,25 +142,28 @@ func (r *repo) GetMusicByFilter(filter *datastruct.Music, nOnPage, nPage int) ([
 		songs = append(songs, m)
 	}
 
-	if reflect.DeepEqual(songs, []datastruct.Music{}) {
-		return nil, datastruct.ErrBadFilter
+	if len(songs) < 1 {
+		return nil, datastruct.ErrBadList
 	}
+	//	if reflect.DeepEqual(songs, []datastruct.Music{}) {
+	//		return nil, datastruct.ErrBadFilter
+	//	}
 
-	log.Debug("Repository: get Music was saccessful")
+	log.Debug("Repository: get Music was successful")
 	return songs, nil
 }
 
-func (r *repo) AddMusic(m *datastruct.Music) error {
-	_, err := r.Database.Query("INSERT INTO songs (name, groupId, date, text, link) VALUES ($1, $2, $3, $4, $5)", m.Name, m.GroupId, m.Date, m.Text, m.Link)
+func (r *repo) AddMusic(ctx context.Context, m *datastruct.Music) error {
+	_, err := r.Database.QueryContext(ctx, "INSERT INTO songs (name, groupId, date, text, link) VALUES ($1, $2, $3, $4, $5)", m.Name, m.GroupId, m.Date, m.Text, m.Link)
 	if err != nil {
 		log.Debug("Repository: Request error from DB when adding record: ", err)
 		return errors.WithMessage(err, "Repository: Request error from DB when adding record")
 	}
-	log.Debug("Repository: add Music was saccessful")
+	log.Debug("Repository: add Music was successful")
 	return nil
 }
 
-func (r *repo) UpdateMusicById(m *datastruct.Music) error {
+func (r *repo) UpdateMusicById(ctx context.Context, m *datastruct.Music) error {
 	log.Debug("Update Run Repository")
 	updateText := "UPDATE songs SET "
 	updateN := 0
@@ -169,7 +180,7 @@ func (r *repo) UpdateMusicById(m *datastruct.Music) error {
 	}
 
 	if m.GroupId != 0 {
-		_, err := r.GetGroupName(m.GroupId)
+		_, err := r.GetGroupName(ctx, m.GroupId)
 		if err != nil {
 			return datastruct.ErrBadGroupId
 		}
@@ -213,40 +224,45 @@ func (r *repo) UpdateMusicById(m *datastruct.Music) error {
 	s = append(s, m.Id)
 	updateText = updateText + fmt.Sprintf(" WHERE id = $%v", updateN)
 
+	fmt.Println("updateText=", updateText)
+	fmt.Println("s=", s)
+
 	log.Debug("Repository: input fields have been processed")
 
-	result, err := r.Database.Exec(updateText, s...)
+	result, err := r.Database.ExecContext(ctx, updateText, s...)
 	if err != nil {
 		return errors.WithMessage(err, "Repository: Request error from DB when updating record")
 	}
 
 	affectedRows, _ := result.RowsAffected()
+	fmt.Println("affectedRows = ", affectedRows)
 	if affectedRows < 1 {
 		return datastruct.ErrBadId
 	}
 
-	log.Debug("Repository: update Music was saccessful")
+	log.Debug("Repository: update Music was successful")
 	return nil
 }
 
-func (r *repo) DeleteMusicById(id int) error {
-	result, err := r.Database.Exec("DELETE FROM songs WHERE id = $1", id)
+func (r *repo) DeleteMusicById(ctx context.Context, id int) error {
+	result, err := r.Database.ExecContext(ctx, "DELETE FROM songs WHERE id = $1", id)
 	if err != nil {
 		log.Debug("Repository: Request error from DB when deleting record: ", err)
 		return errors.WithMessage(err, "Repository: Request error from DB when deleting record")
 	}
 
 	affectedRows, _ := result.RowsAffected()
+	fmt.Println("affectedRows = ", affectedRows)
 	if affectedRows < 1 {
 		return datastruct.ErrBadId
 	}
 
-	log.Debug("Repository: dalete Music was saccessful")
+	log.Debug("Repository: dalete Music was successful")
 	return nil
 }
 
-func (r *repo) GetGroupId(group string) (int, error) {
-	rows, err := r.Database.Query("SELECT id FROM groups WHERE name = $1", group)
+func (r *repo) GetGroupId(ctx context.Context, group string) (int, error) {
+	rows, err := r.Database.QueryContext(ctx, "SELECT id FROM groups WHERE name = $1", group)
 	if err != nil {
 		return 0, errors.WithMessage(err, "Repository: Request error from DB")
 	}
@@ -257,28 +273,29 @@ func (r *repo) GetGroupId(group string) (int, error) {
 
 	for rows.Next() {
 		rows.Scan(&groupId)
+		log.Debug("Repository: Row scan, groupId = ", groupId)
 	}
 	if groupId == 0 {
 		return 0, datastruct.ErrBadGroup
 	}
 
-	log.Debug("Repository: get GroupId was saccessful")
+	log.Debug("Repository: get GroupId was successful")
 
 	return groupId, nil
 }
 
-func (r *repo) AddGroupId(group string) error {
-	_, err := r.Database.Query("INSERT INTO groups (name) VALUES ($1)", group)
+func (r *repo) AddGroupId(ctx context.Context, group string) error {
+	_, err := r.Database.QueryContext(ctx, "INSERT INTO groups (name) VALUES ($1)", group)
 	if err != nil {
 		log.Debug("Repository: Request error from DB when adding record: ", err)
 		return errors.WithMessage(err, "Repository: Request error from DB when adding record")
 	}
-	log.Debug("Repository: add Group was saccessful")
+	log.Debug("Repository: add Group was successful")
 	return nil
 }
 
-func (r *repo) GetGroupName(id int) (string, error) {
-	rows, err := r.Database.Query("SELECT name FROM groups WHERE id = $1", id)
+func (r *repo) GetGroupName(ctx context.Context, id int) (string, error) {
+	rows, err := r.Database.QueryContext(ctx, "SELECT name FROM groups WHERE id = $1", id)
 	if err != nil {
 		return "", errors.WithMessage(err, "Repository: Request error from DB")
 	}
@@ -289,20 +306,21 @@ func (r *repo) GetGroupName(id int) (string, error) {
 
 	for rows.Next() {
 		rows.Scan(&group)
+		log.Debug("Repository: Row scan, group = ", group)
 	}
 	if group == "" {
 		return "", datastruct.ErrBadGroupId
 	}
 
-	log.Debug("Repository: get GroupId was saccessful")
+	log.Debug("Repository: get GroupId was successful")
 
 	return group, nil
 }
 
-func (r *repo) GetList() ([]datastruct.MusicListItem, error) {
+func (r *repo) GetList(ctx context.Context) ([]datastruct.MusicListItem, error) {
 	songs := []datastruct.MusicListItem{}
 
-	rows, err := r.Database.Query("SELECT songs.id, songs.name, groupId, date, text, link, groups.name FROM songs JOIN groups ON songs.groupId = groups.id")
+	rows, err := r.Database.QueryContext(ctx, "SELECT songs.id, songs.name, groupId, date, text, link, groups.name FROM songs JOIN groups ON songs.groupId = groups.id")
 	if err != nil {
 		return nil, errors.WithMessage(err, "Repository: Request error from DB")
 	}
@@ -317,6 +335,6 @@ func (r *repo) GetList() ([]datastruct.MusicListItem, error) {
 		return nil, datastruct.ErrBadList
 	}
 
-	log.Debug("Repository: get Music was saccessful")
+	log.Debug("Repository: get Music was successful")
 	return songs, nil
 }

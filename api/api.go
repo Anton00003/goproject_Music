@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"goproject_Music/datastruct"
 	"net/http"
@@ -34,14 +35,14 @@ type deleteReq struct {
 }
 
 type serv interface {
-	GetAllTextMusicById(id int) (string, error)
-	GetPaginTextMusicById(id, nOnPage int, nPage int) ([]string, error)
-	AddMusic(string, string) (*datastruct.Music, error)
-	GetMusicByFilter(*datastruct.Music, int, int) ([]datastruct.Music, error)
-	UpdateMusicById(*datastruct.Music) error
-	DeleteMusicById(id int) error
-	GetGroupId(group string) (int, error)
-	GetList() ([]datastruct.MusicListItem, error)
+	GetAllTextMusicById(ctx context.Context, id int) (string, error)
+	GetPaginTextMusicById(ctx context.Context, id, nOnPage int, nPage int) ([]string, error)
+	AddMusic(ctx context.Context, song string, group string) (*datastruct.Music, error)
+	GetMusicByFilter(ctx context.Context, filter *datastruct.Music, nOnPage int, nPage int) ([]datastruct.Music, error)
+	UpdateMusicById(ctx context.Context, m *datastruct.Music) error
+	DeleteMusicById(ctx context.Context, id int) error
+	GetGroupId(ctx context.Context, group string) (int, error)
+	GetList(ctx context.Context) ([]datastruct.MusicListItem, error)
 	GetSongFromClient(name, group string) (*datastruct.SongDetail, error)
 }
 
@@ -83,6 +84,7 @@ func (a *api) Run(host string) {
 // @Failure 500 {string} ServerError
 // @Router /music/text [get]
 func (a *api) getAllTextMusicById(g *gin.Context) {
+	ctx := g.Request.Context()
 	idS := g.Request.URL.Query().Get("id")
 	id, err := strconv.Atoi(idS)
 	if err != nil {
@@ -96,7 +98,7 @@ func (a *api) getAllTextMusicById(g *gin.Context) {
 		log.Error("Error Music parameter")
 		return
 	}
-	TextSong, err := a.Serv.GetAllTextMusicById(id)
+	TextSong, err := a.Serv.GetAllTextMusicById(ctx, id)
 	if err != nil {
 		if errors.Is(err, datastruct.ErrBadId) { // ErrBadNameGroup заменить на ErrBadId
 			g.JSON(http.StatusNotFound, err.Error())
@@ -127,6 +129,7 @@ func (a *api) getAllTextMusicById(g *gin.Context) {
 // @Failure 500 {string} ServerError
 // @Router /music/text/couplet [get]
 func (a *api) getPaginTextMusicById(g *gin.Context) {
+	ctx := g.Request.Context()
 	idS := g.Request.URL.Query().Get("id")
 	nOnPageS := g.Request.URL.Query().Get("nOnPage")
 	nPageS := g.Request.URL.Query().Get("nPage")
@@ -166,7 +169,7 @@ func (a *api) getPaginTextMusicById(g *gin.Context) {
 		return
 	}
 
-	coupOnPage, err := a.Serv.GetPaginTextMusicById(id, nOnPage, nPage)
+	coupOnPage, err := a.Serv.GetPaginTextMusicById(ctx, id, nOnPage, nPage)
 	if err != nil {
 		if errors.Is(err, datastruct.ErrBadNumPage) || errors.Is(err, datastruct.ErrBadId) {
 			g.JSON(http.StatusNotFound, err.Error())
@@ -202,6 +205,7 @@ func (a *api) getPaginTextMusicById(g *gin.Context) {
 // @Failure 500 {string} ServerError
 // @Router /music [get]
 func (a *api) getMusicByFilter(g *gin.Context) {
+	ctx := g.Request.Context()
 	var err error
 	log.Debug("Api: Filter Run")
 	filter := &datastruct.Music{}
@@ -267,7 +271,7 @@ func (a *api) getMusicByFilter(g *gin.Context) {
 		return
 	}
 
-	songs, err := a.Serv.GetMusicByFilter(filter, nOnPage, nPage)
+	songs, err := a.Serv.GetMusicByFilter(ctx, filter, nOnPage, nPage)
 	if err != nil {
 		if errors.Is(err, datastruct.ErrBadFilter) {
 			g.JSON(http.StatusNotFound, err.Error())
@@ -295,7 +299,8 @@ func (a *api) getMusicByFilter(g *gin.Context) {
 // @Failure 500 {string} ServerError
 // @Router /music [post]
 func (a *api) addMusic(g *gin.Context) {
-	//	m := &datastruct.Music{}
+	ctx := g.Request.Context()
+	m := &datastruct.Music{}
 	p := addReq{}
 	err := g.ShouldBindJSON(&p)
 	if err != nil {
@@ -315,8 +320,8 @@ func (a *api) addMusic(g *gin.Context) {
 		return
 	}
 
-	var m *datastruct.Music
-	m, err = a.Serv.AddMusic(p.Name, p.Group)
+	//	var m *datastruct.Music
+	m, err = a.Serv.AddMusic(ctx, p.Name, p.Group)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, err.Error())
 		log.Error("Error, Serv.AddMusic: ", err.Error())
@@ -339,6 +344,7 @@ func (a *api) addMusic(g *gin.Context) {
 // @Failure 500 {string} ServerError
 // @Router /music [patch]
 func (a *api) updateMusicById(g *gin.Context) {
+	ctx := g.Request.Context()
 	u := &updateReq{}
 
 	err := g.ShouldBindJSON(u)
@@ -376,7 +382,7 @@ func (a *api) updateMusicById(g *gin.Context) {
 		Link:    u.Link,
 	}
 
-	err = a.Serv.UpdateMusicById(m)
+	err = a.Serv.UpdateMusicById(ctx, m)
 	if err != nil {
 		if errors.Is(err, datastruct.ErrBadId) {
 			g.JSON(http.StatusNotFound, err.Error())
@@ -404,6 +410,7 @@ func (a *api) updateMusicById(g *gin.Context) {
 // @Failure 500 {string} ServerError
 // @Router /music [delete]
 func (a *api) deleteMusicById(g *gin.Context) {
+	ctx := g.Request.Context()
 	m := deleteReq{}
 
 	err := g.ShouldBindJSON(&m)
@@ -418,7 +425,7 @@ func (a *api) deleteMusicById(g *gin.Context) {
 		return
 	}
 
-	err = a.Serv.DeleteMusicById(m.Id)
+	err = a.Serv.DeleteMusicById(ctx, m.Id)
 	if err != nil {
 		if errors.Is(err, datastruct.ErrBadId) {
 			g.JSON(http.StatusNotFound, err.Error())
@@ -444,7 +451,8 @@ func (a *api) deleteMusicById(g *gin.Context) {
 // @Failure 500 {string} ServerError
 // @Router /music/list [get]
 func (a *api) getList(g *gin.Context) {
-	songs, err := a.Serv.GetList()
+	ctx := g.Request.Context()
+	songs, err := a.Serv.GetList(ctx)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, err.Error())
 		log.Error("Server Error: ", err.Error())

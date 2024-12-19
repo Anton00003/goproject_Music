@@ -10,11 +10,11 @@ var (
 	ErrBadFilter     = errors.New("input bad filter")
 	ErrBadField      = errors.New("input bad field of table")
 	ErrBadTypeVal    = errors.New("input value with bad type")
-	ErrBadId         = errors.New("input bad Id values")
+	ErrBadId         = errors.New("input bad Id values, no rows in result set")
 	ErrBadNumCouplet = errors.New("input bad number of Couplet")
 	ErrBadGroup      = errors.New("input bad Group values")
 	ErrBadGroupId    = errors.New("input bad Group Id values")
-	ErrBadList       = errors.New("Music list is void")
+	ErrBadList       = errors.New("no songs in result set")
 	ErrBadMusicGroup = errors.New("input bad Music and Group values")
 )
 
